@@ -8,7 +8,7 @@
 #define PLAYER_NAME NicoAI
 
 typedef vector<vector<bool>> Taulerbools;
-
+typedef pair<pair<Pos,Dir>,int> element_cua;
 struct PLAYER_NAME : public Player {
 
   /**
@@ -19,46 +19,246 @@ struct PLAYER_NAME : public Player {
     return new PLAYER_NAME;
   }
 
-
-  void visitat(Taulerbools& tauler, Pos p){
-
+  void comprobacio_w(Taulerbools& Tauler, queue<element_cua>& cua, element_cua elem){
+    Cell c = cell(elem.first.first);
+    if(c.type == Water) Tauler[elem.first.first.i][elem.first.first.j] = true;
+    else if(c.type == Soil and Tauler[elem.first.first.i][elem.first.first.j] == false){
+        if(c.id == -1){
+          cua.push(elem);
+          Tauler[elem.first.first.i][elem.first.first.j] = true;
+        } 
+        else Tauler[elem.first.first.i][elem.first.first.j] = true;
+    }
+    
   }
 
+  void comprobacio_veins_w(Taulerbools& Tauler, queue<element_cua>& cua, element_cua element_inicial, int& esq, int& abaix, int& dreta, int& adalt){
+    element_cua elem;
 
-  Pos BFS_Boost(Pos pos_ant){
+    elem.first.first = Pos(element_inicial.first.first.i - 1, element_inicial.first.first.j);
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //esquerra
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) esq = elem.second;
+      else comprobacio_w(Tauler,cua,elem);
+    }
+
+    elem.first.first = Pos(element_inicial.first.first.i, element_inicial.first.first.j - 1); //abaix
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //abaix
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) abaix = elem.second;
+      else comprobacio_w(Tauler,cua,elem);
+    }
+
+    elem.first.first = Pos(element_inicial.first.first.i + 1, element_inicial.first.first.j); //dreta
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //dreta
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) dreta = elem.second;
+      else comprobacio_w(Tauler,cua,elem);
+    }
+
+    elem.first.first = Pos(element_inicial.first.first.i, element_inicial.first.first.j + 1); //adalt
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //adalt
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) adalt = elem.second;
+      else comprobacio_w(Tauler,cua,elem);
+    }
+  }
+  
+  Dir BFS_Boost(Pos pos_ant){
     Taulerbools Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
-    queue <pair<pair<Pos,Dir>,int>> cua; //Pos Dir Dist
-    int min_dist_esq, min_dist_dret, min_dist_adalt, min_dist_abaix;
-    Dir d = Right;
-    Pos aux_pos = pos_ant + d;
-    if(pos_ok(aux_pos)){
-      Cell c(aux_pos);
-      if(c.bonus != None) return aux_pos;
+    queue <element_cua> cua; //Pos Dir Dist
+    int min_dist_esq = 25*25, min_dist_dret = 25*25, min_dist_adalt = 25*25, min_dist_abaix = 25*25;
 
-      else if(c.type == Water) Tauler_visited[aux_pos.i][aux_pos.j] = true;
-      else if(c.type == Soil){
-          if(c.id == -1) cua.push(aux_pos);
-          else{}
-        }
+    element_cua elem;
+    elem.first.first = Pos(pos_ant.i - 1, pos_ant.j);
+    elem.first.second = Left;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //esquerra
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_esq = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
     }
-    aux_pos = pos_ant;
-    d = Down;
-    if(pos_ok(aux_pos)){
-        Cell c(aux_pos);
-        if(c.type == Soil and c.id == -1){
-          cua.push(aux_pos);
-        }
+
+    elem.first.first = Pos(pos_ant.i, pos_ant.j - 1); //abaix
+    elem.first.second = Down;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //abaix
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_abaix = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i + 1, pos_ant.j); //dreta
+    elem.first.second = Right;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //dreta
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_dret = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i, pos_ant.j + 1); //adalt
+    elem.first.second = Up;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //adalt
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_adalt = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
+    }
+
+    while(not cua.empty()){
+      element_cua aux = cua.front();
+      comprobacio_veins_w(Tauler_visited,cua,aux,min_dist_esq,min_dist_abaix,min_dist_dret,min_dist_adalt);
+      cua.pop();
     }
     
-    
-    
+    if (min_dist_esq <= min_dist_abaix and min_dist_esq <= min_dist_dret and min_dist_esq <= min_dist_adalt) return Left;
+    else if(min_dist_dret <= min_dist_abaix and min_dist_dret <= min_dist_esq and min_dist_dret <= min_dist_adalt) return Right;
+    else if(min_dist_abaix <= min_dist_dret and min_dist_abaix <= min_dist_esq and min_dist_abaix <= min_dist_adalt) return Down;
+    else return Up;
     
   }
+  
+  Dir BFS_Boost(Pos pos_ant){
+    Taulerbools Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
+    queue <element_cua> cua; //Pos Dir Dist
+    int min_dist_esq = 25*25, min_dist_dret = 25*25, min_dist_adalt = 25*25, min_dist_abaix = 25*25;
+
+    element_cua elem;
+    elem.first.first = Pos(pos_ant.i - 1, pos_ant.j);
+    elem.first.second = Left;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //esquerra
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_esq = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i, pos_ant.j - 1); //abaix
+    elem.first.second = Down;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //abaix
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_abaix = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i + 1, pos_ant.j); //dreta
+    elem.first.second = Right;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //dreta
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_dret = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i, pos_ant.j + 1); //adalt
+    elem.first.second = Up;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //adalt
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_adalt = elem.second;
+      else comprobacio_w(Tauler_visited,cua,elem);
+    }
+
+    while(not cua.empty()){
+      element_cua aux = cua.front();
+      comprobacio_veins_w(Tauler_visited,cua,aux,min_dist_esq,min_dist_abaix,min_dist_dret,min_dist_adalt);
+      cua.pop();
+    }
+    
+    if (min_dist_esq <= min_dist_abaix and min_dist_esq <= min_dist_dret and min_dist_esq <= min_dist_adalt) return Left;
+    else if(min_dist_dret <= min_dist_abaix and min_dist_dret <= min_dist_esq and min_dist_dret <= min_dist_adalt) return Right;
+    else if(min_dist_abaix <= min_dist_dret and min_dist_abaix <= min_dist_esq and min_dist_abaix <= min_dist_adalt) return Down;
+    else return Up;
+  }
+
+  void comprobacio_s(Taulerbools& Tauler, queue<element_cua>& cua, element_cua elem){
+
+  }
+
+  void comprobacio_veins_s()
 
   /**Taulerbools Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
    * Searches for the nearset enemies  position to the position pos_ant
    */
-  Pos BFS_Enemies(Pos pos_ant){}
+  Dir BFS_Enemies(Pos pos_ant){
+    Taulerbools Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
+    queue <element_cua> cua; //Pos Dir Dist
+    int min_dist_esq = 25*25, min_dist_dret = 25*25, min_dist_adalt = 25*25, min_dist_abaix = 25*25;
+
+    element_cua elem;
+    elem.first.first = Pos(pos_ant.i - 1, pos_ant.j);
+    elem.first.second = Left;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //esquerra
+      Cell c = cell(elem.first.first);
+      if(c.id != me()) min_dist_esq = elem.second;
+      else comprobacio_s(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i, pos_ant.j - 1); //abaix
+    elem.first.second = Down;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //abaix
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_abaix = elem.second;
+      else comprobacio_s(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i + 1, pos_ant.j); //dreta
+    elem.first.second = Right;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //dreta
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_dret = elem.second;
+      else comprobacio_s(Tauler_visited,cua,elem);
+    }
+
+    elem.first.first = Pos(pos_ant.i, pos_ant.j + 1); //adalt
+    elem.first.second = Up;
+    elem.second = 1;
+
+    if(pos_ok(elem.first.first)){ //adalt
+      Cell c = cell(elem.first.first);
+      if(c.bonus != None) min_dist_adalt = elem.second;
+      else comprobacio_s(Tauler_visited,cua,elem);
+    }
+
+    while(not cua.empty()){
+      element_cua aux = cua.front();
+      comprobacio_veins_s(Tauler_visited,cua,aux,min_dist_esq,min_dist_abaix,min_dist_dret,min_dist_adalt);
+      cua.pop();
+    }
+    
+    if (min_dist_esq <= min_dist_abaix and min_dist_esq <= min_dist_dret and min_dist_esq <= min_dist_adalt) return Left;
+    else if(min_dist_dret <= min_dist_abaix and min_dist_dret <= min_dist_esq and min_dist_dret <= min_dist_adalt) return Right;
+    else if(min_dist_abaix <= min_dist_dret and min_dist_abaix <= min_dist_esq and min_dist_abaix <= min_dist_adalt) return Down;
+    else return Up;
+  }
   /**
    * Play method, invoked once per each round.
    */
@@ -75,16 +275,14 @@ struct PLAYER_NAME : public Player {
 
       for(int i = 0; i < sizew; ++i){  
         Ant formiga_w = ant(vec_workers[i]);
-        BFS_boost(formiga_w.pos);
-        move(formiga_w.id,/*direccio*/);
+        move(formiga_w.id,BFS_Boost(formiga_w.pos));
       }
 
       vector<int>vec_soldiers = soldiers(me());
       int sizes = vec_soldiers.size();
       for(int j = 0; j < sizes; ++j){
         Ant formiga_s = ant(vec_soldiers[j]);
-        BFS_Enemies(formiga_s.pos);
-        move(formiga_s.id,/*direccio*/);
+        move(formiga_s.id,BFS_Enemies(formiga_s.pos));
       }
     }
   }
