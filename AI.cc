@@ -43,8 +43,19 @@ struct PLAYER_NAME : public Player {
   /**
    * Searches for the nearset boost position to the position pos_ant
    */
-  Pos BFS_Boost(Pos pos_ant){
-
+  Pos BFS_Boost(vector<vector<bool>>& Tauler_visited,Pos pos_ant){
+    queue <Pos> cua;
+    Dir d = Right;
+    Pos aux_pos = pos_ant + d;
+    if(pos_ok(aux_pos)){
+      Cell c(aux_pos);
+      if(c.type == Soil and c.id == -1){
+    }
+    }
+    
+    
+    
+    
   }
 
   /**
@@ -63,21 +74,26 @@ struct PLAYER_NAME : public Player {
       return;
     }
      //Si round es < 8 es imposible que ens trobem amb alguna formiga, prioritzem els boosts per les workers
-    vector<int> vec_workers = workers(me());
-    int sizew = vec_workers.size();
-    for(int i = 0; i < sizew; ++i){  
-      Ant formiga_w = ant(vec_workers[i]);
-      BFS_boost(formiga_w.pos);
-      move(formiga_w.id,/*direccio*/);
-    }
+    else{
+      vector<vector<bool>> Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
+      vector<int> vec_workers = workers(me());
+      int sizew = vec_workers.size();
 
-    vector<int>vec_soldiers = soldiers(me());
-    int sizes = vec_soldiers.size();
-    for(int j = 0; j < sizes; ++j){
-      Ant formiga_s = ant(vec_soldiers[j]);
-      BFS_Enemies(formiga_s.pos);
-      move(formiga_s.id,/*direccio*/);
+      for(int i = 0; i < sizew; ++i){  
+        Ant formiga_w = ant(vec_workers[i]);
+        BFS_boost(formiga_w.pos);
+        move(formiga_w.id,/*direccio*/);
+      }
+
+      vector<int>vec_soldiers = soldiers(me());
+      int sizes = vec_soldiers.size();
+      for(int j = 0; j < sizes; ++j){
+        Ant formiga_s = ant(vec_soldiers[j]);
+        BFS_Enemies(formiga_s.pos);
+        move(formiga_s.id,/*direccio*/);
+      }
     }
+    
 
     
     
