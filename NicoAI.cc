@@ -193,15 +193,75 @@ struct PLAYER_NAME : public Player {
     else return Up;
   }
 
-  void comprobacio_s(Taulerbools& Tauler, queue<element_cua>& cua, element_cua elem){
-
-  }
-
-  void comprobacio_veins_s()
 
   /**Taulerbools Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
    * Searches for the nearset enemies  position to the position pos_ant
+   * 
+   * 
+   * ENEMY SEARCH BELOW
    */
+
+  void comprobacio_s(Taulerbools& Tauler, queue<element_cua>& cua, element_cua elem){
+    Cell c = cell(elem.first.first);
+    if(c.type == Water) Tauler[elem.first.first.i][elem.first.first.j] = true;
+    else if(c.type == Soil and Tauler[elem.first.first.i][elem.first.first.j] == false){
+      if(c.id == -1){
+        cua.push(elem);
+        Tauler[elem.first.first.i][elem.first.first.j] = true;
+      } 
+      else Tauler[elem.first.first.i][elem.first.first.j] = true;
+    }  
+  }
+
+  void comprobacio_veins_s(Taulerbools& Tauler, queue<element_cua>& cua, element_cua element_inicial, int& esq, int& abaix, int& dreta, int& adalt){
+    element_cua elem;
+
+    elem.first.first = Pos(element_inicial.first.first.i - 1, element_inicial.first.first.j);
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //esquerra
+      Cell c = cell(elem.first.first);
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) esq = elem.second;
+      else comprobacio_s(Tauler,cua,elem);
+    }
+
+    elem.first.first = Pos(element_inicial.first.first.i, element_inicial.first.first.j - 1); //abaix
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //abaix
+      Cell c = cell(elem.first.first);
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) abaix = elem.second;
+      else comprobacio_s(Tauler,cua,elem);
+    }
+
+    elem.first.first = Pos(element_inicial.first.first.i + 1, element_inicial.first.first.j); //dreta
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //dreta
+      Cell c = cell(elem.first.first);
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) dreta = elem.second;
+      else comprobacio_s(Tauler,cua,elem);
+    }
+
+    elem.first.first = Pos(element_inicial.first.first.i, element_inicial.first.first.j + 1); //adalt
+    elem.first.second = element_inicial.first.second;
+    elem.second = element_inicial.second + 1;
+
+    if(pos_ok(elem.first.first)){ //adalt
+      Cell c = cell(elem.first.first);
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) adalt = elem.second;
+      else comprobacio_s(Tauler,cua,elem);
+    }
+  }
+
+
   Dir BFS_Enemies(Pos pos_ant){
     Taulerbools Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
     queue <element_cua> cua; //Pos Dir Dist
@@ -214,7 +274,8 @@ struct PLAYER_NAME : public Player {
 
     if(pos_ok(elem.first.first)){ //esquerra
       Cell c = cell(elem.first.first);
-      if(c.id != me()) min_dist_esq = elem.second;
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) min_dist_esq = elem.second;
       else comprobacio_s(Tauler_visited,cua,elem);
     }
 
@@ -224,7 +285,8 @@ struct PLAYER_NAME : public Player {
 
     if(pos_ok(elem.first.first)){ //abaix
       Cell c = cell(elem.first.first);
-      if(c.bonus != None) min_dist_abaix = elem.second;
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) min_dist_abaix = elem.second;
       else comprobacio_s(Tauler_visited,cua,elem);
     }
 
@@ -234,7 +296,8 @@ struct PLAYER_NAME : public Player {
 
     if(pos_ok(elem.first.first)){ //dreta
       Cell c = cell(elem.first.first);
-      if(c.bonus != None) min_dist_dret = elem.second;
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) min_dist_dret = elem.second;
       else comprobacio_s(Tauler_visited,cua,elem);
     }
 
@@ -244,7 +307,8 @@ struct PLAYER_NAME : public Player {
 
     if(pos_ok(elem.first.first)){ //adalt
       Cell c = cell(elem.first.first);
-      if(c.bonus != None) min_dist_adalt = elem.second;
+      Ant aux = ant(c.id);
+      if(aux.player != me() and aux.type == Worker) min_dist_adalt = elem.second;
       else comprobacio_s(Tauler_visited,cua,elem);
     }
 
@@ -272,7 +336,6 @@ struct PLAYER_NAME : public Player {
       
       vector<int> vec_workers = workers(me());
       int sizew = vec_workers.size();
-
       for(int i = 0; i < sizew; ++i){  
         Ant formiga_w = ant(vec_workers[i]);
         move(formiga_w.id,BFS_Boost(formiga_w.pos));
