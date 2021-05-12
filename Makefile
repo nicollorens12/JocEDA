@@ -1,4 +1,4 @@
-DUMMY_OBJ = AIDemo.o
+DUMMY_OBJ = AIDummy.o
 
 # Add here any extra .o player files you want to link to the executable
 EXTRA_OBJ =

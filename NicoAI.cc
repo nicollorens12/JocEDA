@@ -262,7 +262,7 @@ struct PLAYER_NAME : public Player {
   }
 
 
-  Dir BFS_Enemies(Pos pos_ant){
+  Dir BFS_Enemies(Pos pos_ant, bool& found){
     Taulerbools Tauler_visited(board_rows(),vector<bool>(board_cols(),false));
     queue <element_cua> cua; //Pos Dir Dist
     int min_dist_esq = 25*25, min_dist_dret = 25*25, min_dist_adalt = 25*25, min_dist_abaix = 25*25;
