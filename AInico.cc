@@ -14,7 +14,7 @@ pair<int,Dir> min_dist;
 Taulerbools tauler (25,vector<bool>(25,false));
 set<Pos> proximes_pos;
 map<int,int> workers_deixan; //id rondas;
-
+int min_queen_dist_boost;
 struct PLAYER_NAME : public Player {
 
   /**
@@ -37,7 +37,27 @@ struct PLAYER_NAME : public Player {
     }
 };
 
-  
+  Dir free_space(Pos p, bool& found){ //Returns dir to free space
+      if(cell(p+Up).id == -1){
+        found = true;
+        return Up;
+      } 
+      else if(cell(p+Right).id == -1){
+        found = true;
+        return Right;
+      }
+      else if(cell(p+Down).id == -1){
+        found = true;
+        return Down;
+      }
+      else if(cell(p+Left).id == -1){
+        found = true;
+        return Left;
+      }
+      found = false;
+      return Left;   
+  }
+
   bool tengo_reservas(AntType t,int id){
     if(t == Worker){
       if(ant(id).reserve[0] > worker_carbo() and ant(id).reserve[0] > worker_prote() and ant(id).reserve[0] > worker_lipid()) return true;
@@ -49,30 +69,125 @@ struct PLAYER_NAME : public Player {
     }
     return false;
   }
-   /**BFS for workers and its aux func
-   * Searches for the nearset boost position to the position pos_ant
+
+  bool next2queen(Pos p){
+    if(pos_ok(p+Up) and cell(p+Up).id != -1 and ant(cell(p+Up).id).type == Queen and ant( cell(p + Up).id ).player == me() ) return true;
+    else if(pos_ok(p+Right) and cell(p+Right).id != -1 and ant(cell(p+Right).id).type == Queen and ant( cell(p + Right).id ).player == me()) return true;
+    else if(pos_ok(p+Down) and cell(p+Down).id != -1 and ant(cell(p+Down).id).type == Queen and ant( cell(p + Down).id ).player == me() ) return true;
+    else if(pos_ok(p+Left) and cell(p+Left).id != -1 and ant(cell(p+Left).id).type == Queen and ant( cell(p + Left).id ).player == me()) return true;
+    return false;
+  }
+
+  /**BFS for soldiers and its aux func for searhing enemy worker ants
+   * Searches for the nearset enemies  position to the position pos_ant
+   * 
+   * 
+   * SOLDIER SEARCH BELOW
+   */
+
+
+  bool trobat_soldiers(Cell c){
+    if(c.id != -1 and ant(c.id).type == Soldier and ant(c.id).player != me())   return true;
+    return false;
+  }
+
+  bool valid_soldiers(Cell c, Pos p) {
+    if(c.type != Water and tauler[p.i][p.j] == false and c.id == -1) return true;
+    if(c.id != -1 and ant(c.id).player != me() and ant(c.id).type != Queen and tauler[p.i][p.j] == false) return true; //Si no es water si no esta visitado y si en el caso de que haya una hormiga no sea mia
+    return false;
+  }
+
+  int BFS_Queen_Enemies(Pos p, bool& found, Dir& d) {
+    queue<element> cua;
+    cua.push(element(Pos(p.i + 1, p.j) , Down   , 1));
+    cua.push(element(Pos(p.i - 1, p.j) , Up     , 1));
+    cua.push(element(Pos(p.i , p.j + 1), Right  , 1));
+    cua.push(element(Pos(p.i , p.j - 1), Left   , 1));
+
+    while (not cua.empty()) {
+        if (pos_ok(cua.front().pos) and valid_soldiers( cell(cua.front().pos), cua.front().pos) ) {
+            if ( trobat_soldiers(cell(cua.front().pos)) ) {
+                found = true;
+                d = cua.front().dir;
+                return cua.front().dist;
+            }
+            else {
+                cua.push( element(Pos(cua.front().pos.i + 1,    cua.front().pos.j),      cua.front().dir, cua.front().dist + 1));
+                cua.push( element(Pos(cua.front().pos.i - 1,    cua.front().pos.j),      cua.front().dir, cua.front().dist + 1));
+                cua.push( element(Pos(cua.front().pos.i ,       cua.front().pos.j + 1),  cua.front().dir, cua.front().dist + 1));
+                cua.push( element(Pos(cua.front().pos.i ,       cua.front().pos.j - 1),  cua.front().dir, cua.front().dist + 1));
+            }
+            tauler[cua.front().pos.i] [cua.front().pos.j] = true;
+        }
+        
+        cua.pop();
+    }
+
+    return -1;
+}
+
+
+
+
+  /**BFS for queens boosts
+   * Searches for the nearset boost position to the quuens pos returns dist
    * 
    * 
    * QUEEN SEARCH BELOW
    */
-  bool next2queen(Pos p){
-    if(pos_ok(p+Up) and cell(p+Up).id != -1 and ant(cell(p+Up).id).type == Queen) return true;
-    else if(pos_ok(p+Right) and cell(p+Right).id != -1 and ant(cell(p+Right).id).type == Queen) return true;
-    else if(pos_ok(p+Down) and cell(p+Down).id != -1 and ant(cell(p+Down).id).type == Queen) return true;
-    else if(pos_ok(p+Left) and cell(p+Left).id != -1 and ant(cell(p+Left).id).type == Queen) return true;
+  
+  bool trobat_boost(Cell c, Pos p){
+    if(c.bonus != None ) return true;
     return false;
   }
 
+  bool valid_boost(Cell c, Pos p) {
+    if(c.type != Water and c.id == -1 and tauler[p.i][p.j] == false) return true;
+    return false;
+  }
+
+  int BFS_Queen_Boost(Pos p, bool& found, Dir& d) {
+    queue<element> cua;
+    cua.push(element(Pos(p.i + 1, p.j) , Down   , 1));
+    cua.push(element(Pos(p.i - 1, p.j) , Up     , 1));
+    cua.push(element(Pos(p.i , p.j + 1), Right  , 1));
+    cua.push(element(Pos(p.i , p.j - 1), Left   , 1));
+
+    while (not cua.empty()) {
+        if (pos_ok(cua.front().pos) and valid_boost( cell(cua.front().pos), cua.front().pos) ) {
+            if ( trobat_boost(cell(cua.front().pos), cua.front().pos) ) {
+                found = true;
+                d = cua.front().dir;
+                return cua.front().dist;
+            }
+            else {
+                cua.push( element(Pos(cua.front().pos.i + 1,    cua.front().pos.j),      cua.front().dir, cua.front().dist + 1));
+                cua.push( element(Pos(cua.front().pos.i - 1,    cua.front().pos.j),      cua.front().dir, cua.front().dist + 1));
+                cua.push( element(Pos(cua.front().pos.i ,       cua.front().pos.j + 1),  cua.front().dir, cua.front().dist + 1));
+                cua.push( element(Pos(cua.front().pos.i ,       cua.front().pos.j - 1),  cua.front().dir, cua.front().dist + 1));
+            }
+            tauler[cua.front().pos.i] [cua.front().pos.j] = true;
+        }
+        
+        cua.pop();
+    }
+
+    return -1;
+}
+
+
+    /**BFS for workers and its aux func
+   * Searches for the path to queen   
+   * 
+   * QUEEN SEARCH BELOW
+   */
+
   bool trobat_r(Pos p){
     
-    if(pos_ok(p + Up) and cell(p+Up).id != -1 and ant( cell(p + Up).id ).type == Queen and ant( cell(p + Up).id ).player == me() ){
-      return true;
-    }
-    else if(pos_ok(p + Right) and cell(p+Right).id != -1 and ant(cell(p + Right).id).type == Queen and ant( cell(p + Up).id ).player == me() ){
-       return true;
-    }
-    else if(pos_ok(p + Down) and cell(p+Down).id != -1 and  ant(cell(p + Down).id).type == Queen and ant( cell(p + Up).id ).player == me()) return true;
-    else if(pos_ok(p + Left) and cell(p+Left).id != -1 and  ant(cell(p + Left).id).type == Queen and ant( cell(p + Up).id ).player == me()) return true;
+    if(pos_ok(p + Up) and cell(p+Up).id != -1 and ant( cell(p + Up).id).type == Queen and ant( cell(p + Up).id ).player == me() and cell(p).bonus == None ) return true;
+    else if(pos_ok(p + Right) and cell(p+Right).id != -1 and ant(cell(p + Right).id).type == Queen and ant( cell(p + Right).id ).player == me() and cell(p).bonus == None ) return true;
+    else if(pos_ok(p + Down) and cell(p+Down).id != -1 and  ant(cell(p + Down).id).type == Queen and ant( cell(p + Down).id ).player == me() and cell(p).bonus == None ) return true;
+    else if(pos_ok(p + Left) and cell(p+Left).id != -1 and  ant(cell(p + Left).id).type == Queen and ant( cell(p + Left).id ).player == me() and cell(p).bonus == None ) return true;
     return false;
   }
 
@@ -128,7 +243,7 @@ struct PLAYER_NAME : public Player {
     else return Pos(p.i+1,p.j);
   }
 
-  bool trobat_w(Cell c, Pos p){
+  bool trobat_w(Cell c, Pos p){ //not next2queen(p)
     if(c.bonus != None and not next2queen(p)) return true;
     return false;
   }
@@ -173,14 +288,16 @@ struct PLAYER_NAME : public Player {
    * 
    * SOLDIER SEARCH BELOW
    */
-bool trobat_s(Cell c){
-    if(c.id != -1 and ant(c.id).type == Worker) return true;
+
+
+  bool trobat_s(Cell c){
+    if(c.id != -1 and ant(c.id).type == Worker and ant(c.id).player != me())   return true;
     return false;
   }
 
   bool valid_s(Cell c, Pos p) {
     if(c.type != Water and tauler[p.i][p.j] == false and c.id == -1) return true;
-    if(c.id != -1 and ant(c.id).player != me() and tauler[p.i][p.j] == false) return true; //Si no es water si no esta visitado y si en el caso de que haya una hormiga no sea mia
+    if(c.id != -1 and ant(c.id).player != me() and ant(c.id).type != Queen and tauler[p.i][p.j] == false) return true; //Si no es water si no esta visitado y si en el caso de que haya una hormiga no sea mia
     return false;
   }
 
@@ -220,29 +337,42 @@ bool trobat_s(Cell c){
    */
 
    /** COSAS PENDIENTES DE RESOLVER
-   *  Las intentan dejar su boost al lado de la reina pero puede pasar que ya haya un boost, las haria moverse random si les pasa esto o que??
-   *  La queen no hace lay aunque tenga reservas
-   *  Mirar que hacen las workers si no hay boosts en el mapa, no queremos que una se quede parada al lado de la reina y esta no pueda coger el boost que le acaban de dejar
-   * 
+   *  Ronda 0 mirar que fer amb les formigues
+   *  Els soldiers haurien devitar estar a prop de queens
+   *  La queen hauria de defensarse d'atacs de soldiers enemigues
+   *  worker, if next2soldier = runaway
+   *  Las soldiers van a por soldiers
+   *  La reina se queda empanada con boosts al lado, ronda 17
    */
 
-  virtual void play () {
+  virtual void play () { //./Game AInico Demo Demo Demo -s 30 -i default.cnf -o default.out
       // Round 0 move right
     if (round() == 0) {
       return;
     }
      
-    else{
+    else{ //si tinc poques treballadores a per soldats i si no a per workers nomes
       proximes_pos.clear();
-      //NO NOMES SI ID == -1 ja que ens interesa que mati la reina si cal a formigues enemigues
+      vector<int> reina = queens(me());
+      Pos pos_queen = ant(reina[0]).pos; 
       if(round()%queen_period() == 0){
-        vector<int> reina = queens(me());
-        Pos pos_queen = ant(reina[0]).pos;
-        if(tengo_reservas(Worker,reina[0])) lay(reina[0],Dir(random(0, 3)),Worker); //Habra que crear random tambien soldiers
-
+        bool found = false;
+        Dir d_s;
+        Dir d_b;
+        int nearest_dist_s = BFS_Queen_Enemies(ant(reina[0]).pos,found,d_s);
+        int nearest_dist_b = BFS_Queen_Boost(ant(reina[0]).pos,found,d_b);
         
-         //menjar tot menys altres reines PRIORIZAMOS COMER HORMIGAS QUE BOOSTS
-        if( cell(pos_queen + Up).id != -1 and ant(cell(pos_queen + Up).id).player != me() and ant(cell(pos_queen + Up).id).type != Queen){
+        if(nearest_dist_s < 5 and nearest_dist_s > -1){
+            proximes_pos.insert(ant(reina[0]).pos + d_s);
+            move(reina[0],d_s); 
+        }
+        
+        else if(nearest_dist_b < 3 and nearest_dist_b > -1 ){
+            proximes_pos.insert(ant(reina[0]).pos + d_b);
+            move(reina[0],d_b); 
+        } 
+        
+        else if( cell(pos_queen + Up).id != -1 and ant(cell(pos_queen + Up).id).player != me() and ant(cell(pos_queen + Up).id).type != Queen){
             proximes_pos.insert(pos_queen + Up);
             move(reina[0],Up);     
         } 
@@ -260,35 +390,33 @@ bool trobat_s(Cell c){
         }
 
         /*BOOSTS Y PREVENCION DE SI HAY BOOST PERO TAMBIEN UNA HORMIGA ENEMIGA ME LA COMO*/
-        else if( cell(pos_queen + Up).bonus != None){
-          //if(cell(pos_queen + Up).id != -1 and ant(cell(pos_queen + Up).id).player != me())
-          if(not (cell(pos_queen + Up).id != -1 and ant(cell(pos_queen + Up).id).player == me())){
+        else if( cell(pos_queen + Up).bonus != None and cell(pos_queen + Up).id == -1){
             proximes_pos.insert(pos_queen + Up);
-            move(reina[0],Up);
-          }  
+            move(reina[0],Up);  
         } 
-        else if( cell(pos_queen + Right).bonus != None){
-          if(not (cell(pos_queen + Right).id != -1 and ant(cell(pos_queen + Right).id).player == me())){
-            proximes_pos.insert(pos_queen + Right);
-            move(reina[0],Right);
-          }
+        else if(  cell(pos_queen + Right).bonus != None and cell(pos_queen + Right).id == -1){
+          proximes_pos.insert(pos_queen + Right);
+          move(reina[0],Right);
+
         } 
-        else if( cell(pos_queen + Down).bonus != None){
-          if(not (cell(pos_queen + Down).id != -1 and ant(cell(pos_queen + Down).id).player == me())){
-            proximes_pos.insert(pos_queen + Down);
-            move(reina[0],Down);
-          }
+        else if( cell(pos_queen + Down).bonus != None and cell(pos_queen + Down).id == -1){
+          proximes_pos.insert(pos_queen + Down);
+          move(reina[0],Down);
         } 
-        else if( cell(pos_queen + Left).bonus != None){
-          if(not (cell(pos_queen + Left).id != -1 and ant(cell(pos_queen + Left).id).player == me())){
-            proximes_pos.insert(pos_queen + Left);
-            move(reina[0],Left);
-          }
+        else if( cell(pos_queen + Left).bonus != None and cell(pos_queen + Left).id == -1){
+          proximes_pos.insert(pos_queen + Left);
+          move(reina[0],Left);
         }
+     
+      }
+      else{
 
-       
-
-        //MIRAR RESERVAS I ON PUC FER LAY 
+        if(soldiers(me()).size() < 3 and workers(me()).size() < 3){
+          lay(reina[0],Dir(random(0,3)),Soldier);
+        } 
+        else{
+           lay(reina[0],Dir(random(0,3)),Worker);
+        }
 
       }
       
@@ -306,14 +434,8 @@ bool trobat_s(Cell c){
         bool found = false;
         Dir d;
         
-        if(next2queen(formiga_w.pos) and formiga_w.bonus != None){
-          pair<int,int> aux;
-          aux.first = formiga_w.id;
-          aux.second = 2;
-          
-          leave(formiga_w.id); 
-        } 
-
+        if(next2queen(formiga_w.pos) and formiga_w.bonus != None) leave(formiga_w.id);
+    
         if(formiga_w.bonus != None) d = BFS_Reina(formiga_w.pos,found);
         else d = BFS_Boost(formiga_w.pos,found);
 
@@ -332,7 +454,6 @@ bool trobat_s(Cell c){
       int sizes = vec_soldiers.size();
 
       for(int j = 0; j < sizes; ++j){
-        cerr << "ENTRA EN EL BFS ENEMIES" << endl;
         tauler = Taulerbools (25,vector<bool>(25,false));
         Ant formiga_w = ant(vec_soldiers[j]);
         bool found = false;
