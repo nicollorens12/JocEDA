@@ -5,7 +5,7 @@
  * Write the name of your player and save this file
  * with the same name and .cc extension.
  */
-#define PLAYER_NAME AInico
+#define PLAYER_NAME NicoLaFormiga
 
 typedef vector<vector<bool>> Taulerbools;
 //typedef pair<pair<Pos,Dir>,int> element_cua;
@@ -410,13 +410,15 @@ struct PLAYER_NAME : public Player {
      
       }
       else{
-
+        /*
         if(soldiers(me()).size() < 3 and workers(me()).size() < 3){
           lay(reina[0],Dir(random(0,3)),Soldier);
         } 
         else{
            lay(reina[0],Dir(random(0,3)),Worker);
         }
+        */
+       if(soldiers(me()).size() == 0){}
 
       }
       
