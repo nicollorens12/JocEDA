@@ -5,7 +5,7 @@
  * Write the name of your player and save this file
  * with the same name and .cc extension.
  */
-#define PLAYER_NAME NicoLaFormiga
+#define PLAYER_NAME Nico
 
 typedef vector<vector<bool>> Taulerbools;
 //typedef pair<pair<Pos,Dir>,int> element_cua;
@@ -36,6 +36,21 @@ struct PLAYER_NAME : public Player {
         dist = ds;
     }
 };
+  bool around_enemy_queen(Pos p){
+    if(pos_ok(p+Up) and cell(p+Up).id != -1 and ant(cell(p+Up).id).type == Queen and ant( cell(p + Up).id ).player != me() ) return true;
+    else if(pos_ok(p+Right) and cell(p+Right).id != -1 and ant(cell(p+Right).id).type == Queen and ant( cell(p + Right).id ).player != me()) return true;
+    else if(pos_ok(p+Down) and cell(p+Down).id != -1 and ant(cell(p+Down).id).type == Queen and ant( cell(p + Down).id ).player != me() ) return true;
+    else if(pos_ok(p+Left) and cell(p+Left).id != -1 and ant(cell(p+Left).id).type == Queen and ant( cell(p + Left).id ).player != me()) return true;
+    return false;
+  }
+
+  bool around_enemy_soldier(Pos p){
+    if(pos_ok(p+Up) and cell(p+Up).id != -1 and ant(cell(p+Up).id).type == Soldier and ant( cell(p + Up).id ).player != me() ) return true;
+    else if(pos_ok(p+Right) and cell(p+Right).id != -1 and ant(cell(p+Right).id).type == Soldier and ant( cell(p + Right).id ).player != me()) return true;
+    else if(pos_ok(p+Down) and cell(p+Down).id != -1 and ant(cell(p+Down).id).type == Soldier and ant( cell(p + Down).id ).player != me() ) return true;
+    else if(pos_ok(p+Left) and cell(p+Left).id != -1 and ant(cell(p+Left).id).type == Soldier and ant( cell(p + Left).id ).player != me()) return true;
+    return false;
+  }
 
   Dir free_space(Pos p, bool& found){ //Returns dir to free space
       if(cell(p+Up).id == -1){
@@ -92,8 +107,8 @@ struct PLAYER_NAME : public Player {
   }
 
   bool valid_soldiers(Cell c, Pos p) {
-    if(c.type != Water and tauler[p.i][p.j] == false and c.id == -1) return true;
-    if(c.id != -1 and ant(c.id).player != me() and ant(c.id).type != Queen and tauler[p.i][p.j] == false) return true; //Si no es water si no esta visitado y si en el caso de que haya una hormiga no sea mia
+    if(c.type != Water and tauler[p.i][p.j] == false and c.id == -1 and not around_enemy_queen(p)) return true;
+    if(c.id != -1 and ant(c.id).player != me() and ant(c.id).type != Queen and tauler[p.i][p.j] == false and not around_enemy_queen(p)) return true; //Si no es water si no esta visitado y si en el caso de que haya una hormiga no sea mia
     return false;
   }
 
@@ -249,7 +264,7 @@ struct PLAYER_NAME : public Player {
   }
 
   bool valid_w(Cell c, Pos p) {
-    if(c.type != Water and c.id == -1 and tauler[p.i][p.j] == false) return true;
+    if(c.type != Water and c.id == -1 and tauler[p.i][p.j] == false and not around_enemy_soldier(p)) return true;
     return false;
   }
 
@@ -338,20 +353,20 @@ struct PLAYER_NAME : public Player {
 
    /** COSAS PENDIENTES DE RESOLVER
    *  Ronda 0 mirar que fer amb les formigues
-   *  Els soldiers haurien devitar estar a prop de queens
-   *  La queen hauria de defensarse d'atacs de soldiers enemigues
-   *  worker, if next2soldier = runaway
+   *  las workers no se si se enteran bien de que tienen soldiers al lado y deberian ir con ojo con queens enemigas
+   *  los soldiers no se si se enteran bien de que tienen queens al lado
    *  Las soldiers van a por soldiers
-   *  La reina se queda empanada con boosts al lado, ronda 17
+   *  Mi reina deberia matar workers enemigas si se le acercan???
+   *  Workers BFS a la reina si next2soldier?
+   *  La reina si no tiene workers hace el mongolo no busca boosts
    */
 
-  virtual void play () { //./Game AInico Demo Demo Demo -s 30 -i default.cnf -o default.out
-      // Round 0 move right
+  virtual void play () {
     if (round() == 0) {
       return;
     }
      
-    else{ //si tinc poques treballadores a per soldats i si no a per workers nomes
+    else{ 
       proximes_pos.clear();
       vector<int> reina = queens(me());
       Pos pos_queen = ant(reina[0]).pos; 
@@ -362,7 +377,12 @@ struct PLAYER_NAME : public Player {
         int nearest_dist_s = BFS_Queen_Enemies(ant(reina[0]).pos,found,d_s);
         int nearest_dist_b = BFS_Queen_Boost(ant(reina[0]).pos,found,d_b);
         
-        if(nearest_dist_s < 5 and nearest_dist_s > -1){
+        if(workers(me()).size() == 0 and nearest_dist_b < 15 and nearest_dist_b > -1){
+            proximes_pos.insert(ant(reina[0]).pos+d_b);
+            move(reina[0],d_b);     
+        }
+
+        else if(nearest_dist_s < 5 and nearest_dist_s > -1){
             proximes_pos.insert(ant(reina[0]).pos + d_s);
             move(reina[0],d_s); 
         }
@@ -410,19 +430,16 @@ struct PLAYER_NAME : public Player {
      
       }
       else{
-        /*
-        if(soldiers(me()).size() < 3 and workers(me()).size() < 3){
-          lay(reina[0],Dir(random(0,3)),Soldier);
-        } 
-        else{
-           lay(reina[0],Dir(random(0,3)),Worker);
-        }
-        */
-       if(soldiers(me()).size() == 0){}
+
+       if(soldiers(me()).size() == 0){
+         lay(reina[0],Dir(random(0,3)),Soldier);
+       }
+       else{
+         lay(reina[0],Dir(random(0,3)),Worker);
+       }
 
       }
       
-      //QUEEN NO HA DE MOURES SI LAS WORKERS ENCARA NO SHAN POGUT MOURE I NO PODEN ANARSE A DONARLI EL BOOST A LALTRE QUEEN
       vector<int> vec_workers = workers(me());
       int sizew = vec_workers.size();
 
@@ -461,7 +478,6 @@ struct PLAYER_NAME : public Player {
         bool found = false;
 
         Dir d = BFS_Enemies(formiga_w.pos,found);
-        cerr << formiga_w.id << " " << d << endl;
         Pos p = pos_mod(formiga_w.pos,d);
         set<Pos>::const_iterator it;
         it = proximes_pos.find(p);
