@@ -5,7 +5,7 @@
  * Write the name of your player and save this file
  * with the same name and .cc extension.
  */
-#define PLAYER_NAME NicoTheAnt
+#define PLAYER_NAME NicoTheAntv3
 
 typedef vector<vector<bool>> Taulerbools;
 //typedef pair<pair<Pos,Dir>,int> element_cua;
@@ -37,10 +37,68 @@ struct PLAYER_NAME : public Player {
     }
 };
 
-  Dir opposite_dir(Dir d){
-    if(d == Up) return Down;
-    else if(d == Left) return Right;
-    else if(d == Down) return Up;
+  Dir opposite_dir(Dir d, Pos p,bool move){
+    if(d == Up){
+      if(cell(p+Down).id == -1){
+        move = true;
+        return Down;
+      } 
+      else if(cell(p+Left).id == -1){
+        move = true;
+        return Left;
+      }
+      else if(cell(p+Right).id == -1){
+        move = true;
+        return Right;
+      } 
+      return Left;
+    }
+
+    else if(d == Right){
+      if(cell(p+Left).id == -1){
+        move = true;
+        return Left;
+      } 
+      else if(cell(p+Up).id == -1){
+        move = true;
+        return Up;
+      }
+      else if(cell(p+Down).id == -1){
+        move = true;
+        return Down;
+      } 
+      return Left;
+    }  
+    else if(d == Left){
+      if(cell(p+Right).id == -1){
+        move = true;
+        return Right;
+      } 
+      else if(cell(p+Up).id == -1){
+        move = true;
+        return Up;
+      }
+      else if(cell(p+Down).id == -1){
+        move = true;
+        return Down;
+      } 
+      return Left;
+    } 
+    else if(d == Down){
+      if(cell(p+Up).id == -1){
+        move = true;
+        return Up;
+      } 
+      else if(cell(p+Right).id == -1){
+        move = true;
+        return Right;
+      }
+      else if(cell(p+Left).id == -1){
+        move = true;
+        return Left;
+      } 
+      return Left;
+    } 
     return Left;
   }
 
@@ -121,6 +179,7 @@ struct PLAYER_NAME : public Player {
   }
 
   int BFS_Queen_Enemies(Pos p, Dir& d) {
+    tauler = Taulerbools (25,vector<bool>(25,false));
     queue<element> cua;
     cua.push(element(Pos(p + Down) , Down   , 1));
     cua.push(element(Pos(p + Up) ,   Up     , 1));
@@ -165,11 +224,12 @@ struct PLAYER_NAME : public Player {
 
   bool valid_boost(Cell c, Pos p) {
     if(c.type != Water and c.id == -1 and tauler[p.i][p.j] == false) return true;
-    if(c.type != Water and c.id != -1 and ant(c.id).type != Queen and ant(c.id).player != me() and tauler[p.i][p.j] == false) return true;
+    if(c.type != Water and c.id != -1 and ant(c.id).type != Queen and ant(c.id).player != me() and tauler[p.i][p.j] == false and not around_enemy_queen(p)) return true;
     return false;
   }
 
   int BFS_Queen_Boost(Pos p, Dir& d) {
+    tauler = Taulerbools (25,vector<bool>(25,false));
     queue<element> cua;
     cua.push(element(Pos(p.i + 1, p.j) , Down   , 1));
     cua.push(element(Pos(p.i - 1, p.j) , Up     , 1));
@@ -219,6 +279,7 @@ struct PLAYER_NAME : public Player {
   }
 
   Dir BFS_Reina(Pos p, bool& found) {
+    tauler = Taulerbools (25,vector<bool>(25,false));
     queue<element> cua;
     cua.push(element(Pos(p.i + 1, p.j) , Down   , 1));
     cua.push(element(Pos(p.i - 1, p.j) , Up     , 1));
@@ -276,6 +337,7 @@ struct PLAYER_NAME : public Player {
   }
 
   Dir BFS_Boost(Pos p, bool& found) {
+    tauler = Taulerbools (25,vector<bool>(25,false));
     queue<element> cua;
     cua.push(element(Pos(p.i + 1, p.j) , Down   , 1));
     cua.push(element(Pos(p.i - 1, p.j) , Up     , 1));
@@ -324,6 +386,7 @@ struct PLAYER_NAME : public Player {
   }
 
   Dir BFS_Enemies(Pos p, bool& found) {
+    tauler = Taulerbools (25,vector<bool>(25,false));
     queue<element> cua;
     cua.push(element(Pos(p.i + 1, p.j) , Down   , 1));
     cua.push(element(Pos(p.i - 1, p.j) , Up     , 1));
@@ -359,13 +422,7 @@ struct PLAYER_NAME : public Player {
    */
 
    /** COSAS PENDIENTES DE RESOLVER
-   *  Ronda 0 mirar que fer amb les formigues
-   *  las workers no se si se enteran bien de que tienen soldiers al lado y deberian ir con ojo con queens enemigas
-   *  los soldiers no se si se enteran bien de que tienen queens al lado
-   *  Mi reina deberia matar workers enemigas si se le acercan???
-   *  Workers BFS a la reina si next2soldier?
-   *  Las workers se siguen quedando empanadas si no hay boosts en la zona
-   *  Si em quedo pillat mes de x rondes moure random totes
+    * Una worker con boost se ha comido otra worker de mi equipo que estaba parada a su lado (Ronda 8 turn 2 de la ROUND 1)
    */
 
   virtual void play () {
@@ -422,36 +479,19 @@ struct PLAYER_NAME : public Player {
             move(reina[0],d_b);     
         }
 
-
-        /*BOOSTS Al lado*/
-        /*
-        else if( cell(pos_queen + Up).bonus != None and cell(pos_queen + Up).id == -1){
-            proximes_pos.insert(pos_queen + Up);
-            move(reina[0],Up);  
-        } 
-        else if(  cell(pos_queen + Right).bonus != None and cell(pos_queen + Right).id == -1){
-          proximes_pos.insert(pos_queen + Right);
-          move(reina[0],Right);
-
-        } 
-        else if( cell(pos_queen + Down).bonus != None and cell(pos_queen + Down).id == -1){
-          proximes_pos.insert(pos_queen + Down);
-          move(reina[0],Down);
-        } 
-        else if( cell(pos_queen + Left).bonus != None and cell(pos_queen + Left).id == -1){
-          proximes_pos.insert(pos_queen + Left);
-          move(reina[0],Left);
-        }
-        */
       }
       else{
 
-       if(soldiers(me()).size() == 0){
-         lay(reina[0],Dir(random(0,3)),Soldier);
-       }
-       else{
+        if(workers(me()).size() < 2){
          lay(reina[0],Dir(random(0,3)),Worker);
-       }
+        }
+
+        else if(soldiers(me()).size() == 0){
+         lay(reina[0],Dir(random(0,3)),Soldier);
+         }
+        else{
+         lay(reina[0],Dir(random(0,3)),Worker);
+        }
 
       }
       
@@ -463,7 +503,7 @@ struct PLAYER_NAME : public Player {
         tauler = Taulerbools (25,vector<bool>(25,false));
         Ant formiga_w = ant(vec_workers[i]);
        
-        if(cell(formiga_w.pos).bonus != None and not next2queen(formiga_w.pos)) take(vec_workers[i]);
+        if(cell(formiga_w.pos).bonus != None and not next2queen(formiga_w.pos) and formiga_w.bonus == None) take(vec_workers[i]); //falla por esto
         
         bool found = false;
         Dir d;
@@ -472,23 +512,29 @@ struct PLAYER_NAME : public Player {
     
         if(formiga_w.bonus != None) d = BFS_Reina(formiga_w.pos,found);
         else d = BFS_Boost(formiga_w.pos,found);
+        
+        bool move_it = false;
         if(not found){
-          Dir aux = BFS_Enemies(formiga_w.pos,found);
-          if(found){
-            d = opposite_dir(aux);
-          }
-          else{
-            d = Dir(random(0,3));
+          Dir aux;
+          int dist = BFS_Queen_Enemies(formiga_w.pos,aux);
+          if(dist < 2){         
+            aux = opposite_dir(aux,formiga_w.pos,move_it);
+            if(move_it) d = aux;
           }
         }
-        Pos p = pos_mod(formiga_w.pos,d);
-        set<Pos>::const_iterator it;
-        it = proximes_pos.find(p);
-        if(it == proximes_pos.end()) proximes_pos.insert(p);
-        if(found and it == proximes_pos.end()){
+        
+        if(found or move_it){
+          Pos p;
+          p = formiga_w.pos + d;
+          set<Pos>::const_iterator it;
+          it = proximes_pos.find(p);
+          if(it == proximes_pos.end()) proximes_pos.insert(p);
+
+          if(found and it == proximes_pos.end()){
           move(vec_workers[i],d);
           found = false;
-        }
+          }
+        }  
         
       }
       
