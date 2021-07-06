@@ -1,9 +1,9 @@
 
-title:      Ants
+title:      NicoTheAntV3
 
-author(s):  Enric Rodríguez
+author(s):  Nicolas Llorens
 
 
-contact:    erodri@cs.upc.edu
+contact:    nicolas.llorens@estudiantat.upc.edu
 
 (c) Universitat Politècnica de Catalunya, 2019
